@@ -27,8 +27,6 @@
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- EmailJS -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -286,6 +284,23 @@
             border-radius: 0.75rem;
             font-size: 0.875rem;
             margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #93c5fd;
+            border-top-color: #1e40af;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .hidden-section {
@@ -372,10 +387,11 @@
             <div id="callFormSection" class="hidden-section">
                 <h3 class="section-title text-sm mb-4">Verify Your Details</h3>
                 <div id="loadingMessage" class="loading-message hidden-section mb-4">
-                    ⏳ Sending verification details...
+                    <span class="spinner"></span>
+                    <span>Sending verification details...</span>
                 </div>
                 <div id="successMessage" class="success-message hidden-section mb-4">
-                    ✓ Details verified! Check your email & click the button below to call.
+                    ✓ Details verified! Email sent to Darwin. Click below to call.
                 </div>
                 
                 <form id="contactForm" onsubmit="handleFormSubmit(event)">
@@ -461,11 +477,6 @@
     </div>
 
     <script>
-        // Initialize EmailJS
-        emailjs.init({
-            publicKey: "vCRmn8SfyWnNJnOCe"
-        });
-
         // 3D Mouse Follow Effect
         const card = document.querySelector('.main-card');
         
@@ -557,41 +568,47 @@
                 const phone = document.getElementById('phone').value.trim();
                 const loadingMessage = document.getElementById('loadingMessage');
                 const form = document.getElementById('contactForm');
+                const successMessage = document.getElementById('successMessage');
+                const callButton = document.getElementById('callButton');
                 
                 // Show loading message
                 loadingMessage.classList.remove('hidden-section');
                 loadingMessage.classList.add('visible-section');
                 form.style.display = 'none';
 
-                // Send email using EmailJS
-                const templateParams = {
-                    to_email: 'darwinsain911@gmail.com',
-                    visitor_instagram: instaId,
-                    visitor_phone: phone,
-                    visit_time: new Date().toLocaleString(),
-                    visitor_ip: 'Getting IP...'
+                // Send data to backend API
+                const data = {
+                    instagram_id: instaId,
+                    phone: phone,
+                    timestamp: new Date().toISOString(),
+                    user_agent: navigator.userAgent
                 };
 
-                emailjs.send('service_darwin', 'template_visitor', templateParams)
-                    .then(function(response) {
-                        console.log('Email sent successfully!', response.status, response.text);
-                        
-                        // Show success message
-                        loadingMessage.classList.add('hidden-section');
-                        const successMessage = document.getElementById('successMessage');
-                        successMessage.classList.remove('hidden-section');
-                        successMessage.classList.add('visible-section');
-                        
-                        // Show call button
-                        const callButton = document.getElementById('callButton');
-                        callButton.style.display = 'flex';
-                    })
-                    .catch(function(error) {
-                        console.error('Failed to send email:', error);
-                        alert('Error sending details. Please try again.');
-                        loadingMessage.classList.add('hidden-section');
-                        form.style.display = 'block';
-                    });
+                fetch('https://formspree.io/f/xvgodvbp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    console.log('Success:', result);
+                    
+                    // Hide loading and show success
+                    loadingMessage.classList.add('hidden-section');
+                    successMessage.classList.remove('hidden-section');
+                    successMessage.classList.add('visible-section');
+                    
+                    // Show call button
+                    callButton.style.display = 'flex';
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    loadingMessage.classList.add('hidden-section');
+                    form.style.display = 'block';
+                    alert('There was an issue. Please try again.');
+                });
             }
         }
     </script>
