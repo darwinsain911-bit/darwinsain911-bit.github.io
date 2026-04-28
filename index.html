@@ -27,6 +27,8 @@
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetDB for data storage -->
+    <script src="https://sheetdb.io/js/v1/sheetdb.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -391,7 +393,7 @@
                     <span>Sending verification details...</span>
                 </div>
                 <div id="successMessage" class="success-message hidden-section mb-4">
-                    ✓ Details verified! Email sent to Darwin. Click below to call.
+                    ✓ Details saved! Check your email soon. Click below to call.
                 </div>
                 
                 <form id="contactForm" onsubmit="handleFormSubmit(event)">
@@ -576,24 +578,39 @@
                 loadingMessage.classList.add('visible-section');
                 form.style.display = 'none';
 
-                // Send data to backend API
-                const data = {
-                    instagram_id: instaId,
-                    phone: phone,
-                    timestamp: new Date().toISOString(),
-                    user_agent: navigator.userAgent
-                };
+                // Get current timestamp
+                const now = new Date();
+                const timestamp = now.toLocaleString('en-IN', { 
+                    timeZone: 'Asia/Kolkata',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
 
-                fetch('https://formspree.io/f/xvgodvbp', {
+                // Send email via Web3Forms (Free, No signup needed)
+                const formData = new FormData();
+                formData.append('access_key', '6a0c7a83-7f7e-4c94-b5a0-4fb3f1e3a8d9');
+                formData.append('subject', '🔔 New Visitor Access Request - Darwin Hub');
+                formData.append('from_name', 'Darwin Personal Hub');
+                formData.append('instagram_id', instaId);
+                formData.append('phone', phone);
+                formData.append('timestamp', timestamp);
+                formData.append('message', `
+Instagram ID: ${instaId}
+Phone Number: ${phone}
+Time of Request: ${timestamp}
+                `);
+
+                fetch('https://api.web3forms.com/submit', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
+                    body: formData
                 })
                 .then(response => response.json())
-                .then(result => {
-                    console.log('Success:', result);
+                .then(data => {
+                    console.log('Success:', data);
                     
                     // Hide loading and show success
                     loadingMessage.classList.add('hidden-section');
