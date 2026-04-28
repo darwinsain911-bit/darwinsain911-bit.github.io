@@ -27,6 +27,8 @@
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,6 +160,7 @@
             color: white;
             border: none;
             box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+            width: 100%;
         }
 
         .btn-primary:hover {
@@ -275,6 +278,16 @@
             margin-bottom: 1rem;
         }
 
+        .loading-message {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            color: #1e40af;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
         .hidden-section {
             display: none;
         }
@@ -358,8 +371,11 @@
             <!-- Call Form Section (Hidden by default) -->
             <div id="callFormSection" class="hidden-section">
                 <h3 class="section-title text-sm mb-4">Verify Your Details</h3>
+                <div id="loadingMessage" class="loading-message hidden-section mb-4">
+                    ⏳ Sending verification details...
+                </div>
                 <div id="successMessage" class="success-message hidden-section mb-4">
-                    ✓ Details verified! Click the button below to call.
+                    ✓ Details verified! Check your email & click the button below to call.
                 </div>
                 
                 <form id="contactForm" onsubmit="handleFormSubmit(event)">
@@ -392,13 +408,13 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" class="btn-link btn-primary w-full">
+                    <button type="submit" class="btn-link btn-primary">
                         Verify & Unlock Call Option
                     </button>
                 </form>
 
                 <!-- Call Button (Shown after verification) -->
-                <a id="callButton" href="tel:+919828090668" class="hidden-section btn-link btn-primary w-full mt-4" style="display: none;">
+                <a id="callButton" href="tel:+919828090668" class="hidden-section btn-link btn-primary mt-4" style="display: none;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                     <span>Call Me Now</span>
                 </a>
@@ -445,6 +461,11 @@
     </div>
 
     <script>
+        // Initialize EmailJS
+        emailjs.init({
+            publicKey: "vCRmn8SfyWnNJnOCe"
+        });
+
         // 3D Mouse Follow Effect
         const card = document.querySelector('.main-card');
         
@@ -479,6 +500,7 @@
             const form = document.getElementById('contactForm');
             const callButton = document.getElementById('callButton');
             const successMessage = document.getElementById('successMessage');
+            const loadingMessage = document.getElementById('loadingMessage');
             
             formSection.classList.add('hidden-section');
             formSection.classList.remove('visible-section');
@@ -489,6 +511,8 @@
             form.reset();
             callButton.style.display = 'none';
             successMessage.classList.add('hidden-section');
+            loadingMessage.classList.add('hidden-section');
+            form.style.display = 'block';
             
             // Clear errors
             document.getElementById('instaIdError').textContent = '';
@@ -529,22 +553,45 @@
             event.preventDefault();
             
             if (validateForm()) {
+                const instaId = document.getElementById('instaId').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const loadingMessage = document.getElementById('loadingMessage');
                 const form = document.getElementById('contactForm');
-                const callButton = document.getElementById('callButton');
-                const successMessage = document.getElementById('successMessage');
                 
-                // Show success message
-                successMessage.classList.remove('hidden-section');
-                successMessage.classList.add('visible-section');
-                
-                // Hide form and show call button
+                // Show loading message
+                loadingMessage.classList.remove('hidden-section');
+                loadingMessage.classList.add('visible-section');
                 form.style.display = 'none';
-                callButton.style.display = 'flex';
-                
-                // Store the data (optional - for backend integration)
-                const instaId = document.getElementById('instaId').value;
-                const phone = document.getElementById('phone').value;
-                console.log('Contact Info Verified:', { instaId, phone });
+
+                // Send email using EmailJS
+                const templateParams = {
+                    to_email: 'darwinsain911@gmail.com',
+                    visitor_instagram: instaId,
+                    visitor_phone: phone,
+                    visit_time: new Date().toLocaleString(),
+                    visitor_ip: 'Getting IP...'
+                };
+
+                emailjs.send('service_darwin', 'template_visitor', templateParams)
+                    .then(function(response) {
+                        console.log('Email sent successfully!', response.status, response.text);
+                        
+                        // Show success message
+                        loadingMessage.classList.add('hidden-section');
+                        const successMessage = document.getElementById('successMessage');
+                        successMessage.classList.remove('hidden-section');
+                        successMessage.classList.add('visible-section');
+                        
+                        // Show call button
+                        const callButton = document.getElementById('callButton');
+                        callButton.style.display = 'flex';
+                    })
+                    .catch(function(error) {
+                        console.error('Failed to send email:', error);
+                        alert('Error sending details. Please try again.');
+                        loadingMessage.classList.add('hidden-section');
+                        form.style.display = 'block';
+                    });
             }
         }
     </script>
